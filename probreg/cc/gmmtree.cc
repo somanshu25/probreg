@@ -71,13 +71,21 @@ NodeParamArray probreg::buildGmmTree(const MatrixX3& points,
                                      Float lambda_s,
                                      Float lambda_d) {
     const Integer n_total = N_NODE * (1 - std::pow(N_NODE, max_tree_level)) / (1 - N_NODE);
+    printf("The number of nodes are: %d\n",n_total);
+    printf("The first 5 points are:\n");
+    for (Integer i = 0; i < 5; i++) {
+        printf("%0.4f, %0.4f, %0.4f \n",points.row(i).x(), points.row(i).y(),points.row(i).z());   
+    }
     NodeParamArray nodes(n_total);
     auto idxs = (n_total * Vector::Random(n_total)).array().abs().cast<Integer>();
+    printf("The idxs are: %d, %d, %d\n",idxs[0],idxs[5],idxs[10]);
     Float sig2 = 0.0;
     for (Integer i = 0; i < points.rows(); ++i) {
         sig2 += (points.rowwise() - points.row(i)).rowwise().squaredNorm().sum();
     }
+    printf("The variance 1 value is: %0.6f \n",sig2);
     sig2 /= points.rows() * points.rows() * points.cols() * N_NODE;
+    printf("The variance 2 value is: %0.4f \n",sig2);
     for (Integer j = 0; j < n_total; ++j) {
         std::get<0>(nodes[j]) = 1.0 / N_NODE;
         std::get<1>(nodes[j]) = points.row(idxs[j]);
@@ -91,7 +99,18 @@ NodeParamArray probreg::buildGmmTree(const MatrixX3& points,
         while (true) {
             const NodeParamArray params =
                 gmmTreeEstep(points, nodes, parent_idx, current_idx, max_tree_level);
+                printf("Level: %d\n",l);
+                printf("The current IDx values are \n");
+                for(Integer k = 0; k < 20; ++k) {
+                    printf("%d ",current_idx[k]);
+                }
+                printf("\n");
             gmmTreeMstep(params, l, nodes, points.rows(), lambda_d);
+            printf("Valiue of 1st nodes are:\n");
+            for(Integer k = 0; k < 20; ++k) {
+                    printf("%0.4f ",std::get<0>(nodes[k]));
+                }
+            printf("\n");
             const Float q = logLikelihood(nodes, points, level(l), level(l + 1));
             if (std::abs(q - prev_q) < lambda_s) {
                 break;
